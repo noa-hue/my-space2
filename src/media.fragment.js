@@ -1,0 +1,23 @@
+let mediaView='open',mediaKind='';
+const mediaKinds={other:'עוד לא סיווגתי',watch:'לראות',listen:'לשמוע',read:'לקרוא'};
+const mediaStatuses={saved:'שמור להמשך',started:'התחלתי',done:'סיימתי'};
+function mediaRecord(original,values){
+ if(!values.text||!Object.hasOwn(mediaKinds,values.kind)||!Object.hasOwn(mediaStatuses,values.mediaStatus))throw Error('צריך שם, סוג ומצב לפריט');
+ if(values.url&&!/^https?:\/\//i.test(values.url))throw Error('הקישור צריך להתחיל ב־https:// או http://');
+ return {...original,...values,recordType:'media'};
+}
+function mediaPage(){
+ const all=state.notes.filter(n=>n.recordType==='media');
+ const list=all.filter(n=>(mediaView==='all'||(mediaView==='done'?n.mediaStatus==='done':n.mediaStatus!=='done'))&&(!mediaKind||n.kind===mediaKind)&&[n.text,n.notes].join(' ').includes(query)).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+ return pageHead('לראות, לשמוע ולקרוא','דברים שמסקרנים אותך, לשמור ולחזור אליהם כשמתאים לך.',`<div class="toolbar">${btn('+ פריט חדש','media-edit','','primary')}${btn('הוספת כמה פריטים','media-bulk')}</div>`)+
+ `<div class="toolbar">${Object.entries({open:'מחכים לי',done:'סיימתי',all:'הכל'}).map(([v,t])=>`<button class="chip ${mediaView===v?'active':''}" data-action="media-view" data-id="${v}" aria-pressed="${mediaView===v}">${t}</button>`).join('')}</div><div class="toolbar"><input class="search" id="search" aria-label="חיפוש ברשימת התרבות והלמידה" placeholder="חיפוש בשם או בהערות" value="${e(query)}">${Object.entries({'':'כל הסוגים',...mediaKinds}).map(([v,t])=>`<button class="chip ${mediaKind===v?'active':''}" data-action="media-kind" data-id="${v}" aria-pressed="${mediaKind===v}">${t}</button>`).join('')}</div><div class="task-summary"><strong>${list.length} פריטים בתצוגה</strong><span>${all.filter(n=>n.mediaStatus!=='done').length} מחכים לך · ${all.filter(n=>n.mediaStatus==='done').length} הסתיימו</span></div><section class="panel">${list.map(n=>`<article class="task ${n.mediaStatus==='done'?'done':''}"><button class="taskcheck" data-action="media-toggle" data-id="${e(n.id)}" aria-label="${n.mediaStatus==='done'?'להחזיר לרשימה':'לסמן שסיימתי'}: ${e(n.text)}"></button><div class="task-body"><strong>${e(n.text)}</strong><div class="contact-tags">${badge(mediaKinds[n.kind]||mediaKinds.other,n.kind==='listen'?'pink':n.kind==='watch'?'sand':'')}${badge(mediaStatuses[n.mediaStatus]||mediaStatuses.saved,n.mediaStatus==='done'?'':'gray')}</div>${n.notes?`<p class="small muted" style="white-space:pre-wrap">${e(n.notes)}</p>`:''}${/^https?:\/\//i.test(n.url||'')?`<a href="${e(n.url)}" target="_blank" rel="noopener noreferrer">פתיחת הקישור ↗</a>`:''}</div><div class="task-actions">${btn('עריכה','media-edit',n.id,'text')}</div></article>`).join('')||empty('אין פריטים בתצוגה הזאת','אפשר להוסיף משהו מסקרן, או לשנות את הסינון.')}</section>`;
+}
+function editMedia(id){const n=state.notes.find(x=>x.id===id&&x.recordType==='media')||{};showDialog(id?'עריכת פריט':'פריט חדש לרשימה',form('notes',id,`<input type="hidden" name="recordType" value="media">${field('מה תרצי לראות, לשמוע או לקרוא?','text',n.text,'text',true)}<div class="grid2">${select('סוג הפריט','kind',n.kind||'other',mediaKinds)}${select('איפה אני עם זה','mediaStatus',n.mediaStatus||'saved',mediaStatuses)}</div>${field('קישור, אם יש','url',n.url,'url')}${area('הערות, המלצה או מחשבות','notes',n.notes)}<input type="hidden" name="date" value="${e(n.date||today)}">`));}
+function newMediaBatch(){showDialog('הוספת כמה פריטים',form('media-bulk','',area('שם אחד בכל שורה','titles','',20000)+select('סוג הפריטים','kind','other',mediaKinds)+area('הערה משותפת, אם יש','notes','')));}
+async function submitMediaBatch(f){
+ const titles=[...new Set(String(f.get('titles')||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];
+ if(!titles.length)throw Error('יש להוסיף לפחות שם אחד');if(titles.length>100)throw Error('אפשר להוסיף עד 100 פריטים בכל פעם');
+ const now=new Date().toISOString();
+ const items=titles.filter(text=>!state.notes.some(n=>n.recordType==='media'&&n.text===text)).map(text=>mediaRecord({},{id:uid(),text,kind:String(f.get('kind')||''),mediaStatus:'saved',url:'',notes:String(f.get('notes')||'').trim(),date:today,createdAt:now,updatedAt:now}));
+ busy=true;try{if(items.length){await storeAdapter.setMany('notes',items);for(const item of items)state.notes=C.upsert(state.notes,item);}saveLabel=CFG.mode==='demo'?'נשמר בדפדפן הזה':'נשמר בענן';modal.close();mediaView='open';mediaKind='';query='';render();toast(`${items.length} פריטים נוספו${titles.length>items.length?' · שמות שכבר היו ברשימה דולגו':''}`);}finally{busy=false;}
+}

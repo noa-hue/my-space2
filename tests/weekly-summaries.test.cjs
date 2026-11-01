@@ -1,0 +1,10 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),c=require('../src/core.cjs');
+const summary={id:'actual_2026-10-11',start:'2026-10-11',status:'actual',orderCents:420000,productionCents:730000,paymentCents:240000,paymentVerified:true,source:'Test fixture'};
+const event={id:'a',jobId:'j',kind:'order',status:'actual',date:'2026-10-13',amountCents:100000};
+test('source weekly totals have no invented daily allocation and do not add to detail amounts',()=>{
+ const rows=c.weekly([event],'2026-10-11','actual',[summary]);assert.deepEqual(rows.map(r=>r.total),[420000,730000,240000]);assert.equal(rows[0].dailyTotal,100000);assert.equal(rows[0].difference,320000);assert.equal(rows[0].cells.flat().length,1);assert.equal(rows[1].cells.flat().length,0);
+});
+test('source summary is isolated to its exact week, year and status',()=>{assert.equal(c.weekly([event],'2026-10-18','actual',[summary])[0].total,0);assert.equal(c.weekly([event],'2026-10-11','planned',[summary])[0].total,0);assert.equal(c.weekly([event],'2025-10-12','actual',[summary])[0].total,0);});
+test('excess detail is exposed as negative reconciliation, rather than silently changing the source',()=>{const row=c.weekly([{...event,amountCents:500000}],'2026-10-11','actual',[summary])[0];assert.equal(row.difference,-80000);assert.equal(row.total,420000);});
+test('payment confirmation and canonical unique summary id are required',()=>{assert.throws(()=>c.validateWeeklySummary({...summary,paymentVerified:false}));assert.throws(()=>c.validateWeeklySummary({...summary,id:'random'}));assert.throws(()=>c.validateWeeklySummary({...summary,start:'2026-10-12'}));assert.throws(()=>c.weekly([],'2026-10-11','actual',[summary,{...summary}]));});
+test('editing a source summary replaces it, while zero weeks remain valid',()=>{const next=c.upsert([summary],{...summary,orderCents:0});assert.equal(next.length,1);assert.equal(c.weekly([],'2026-10-11','actual',next)[0].total,0);assert.equal(c.validateWeeklySummary({...summary,orderCents:0,productionCents:0,paymentCents:0,paymentVerified:false}).paymentCents,0);});
