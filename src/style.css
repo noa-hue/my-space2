@@ -35,3 +35,5 @@
 .weekly-lead-breakdown .grid2{margin-top:14px}
 .weekly-lead-breakdown ul{list-style:none;margin:8px 0 0;padding:0}
 .weekly-lead-breakdown li{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding:8px 0;overflow-wrap:anywhere}
+.metric-row-client-meetings th,.metric-row-client-meetings td.total{background:#e2e9e0;color:#334d37}
+.metric-row-client-meetings td{background:#f6faf4}
