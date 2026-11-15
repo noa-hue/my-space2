@@ -8,12 +8,12 @@ function fixture(mode='both'){
   {id:'planned-payment',jobId:'j',kind:'payment',status:'planned',date:'2026-10-14',amountCents:90000}
  ];
  const weeklySummaries=[{id:'actual_2026-10-11',start:'2026-10-11',status:'actual',orderCents:120000,productionCents:0,paymentCents:0,paymentVerified:false,source:'Test fixture'}];
- const ctx={C,mode,start:'2026-10-11',state:{events,weeklySummaries,notes:[]},leadRecords:()=>ctx.state.notes.filter(n=>n.recordType==='lead'),e:String,jobName:()=> 'Example case',money:n=>String(n/100),fmtDate:s=>s,pageHead:()=>'',btn:(label,action,id='')=>`<button data-action="${action}" data-id="${id}">${label}</button>`,field:()=>'',area:()=>'',form:(_type,_id,body)=>body,$:()=>null,showDialog:(title,html)=>{ctx.dialog={title,html};},download:(name,data)=>{ctx.output={name,data};}};
+ const ctx={clientMeetingWeekRow:()=>'<tr><th scope="row">פגישות לקוחות</th></tr>',clientMeetingReview:()=>'',C,mode,start:'2026-10-11',state:{events,weeklySummaries,notes:[]},leadRecords:()=>ctx.state.notes.filter(n=>n.recordType==='lead'),e:String,jobName:()=> 'Example case',money:n=>String(n/100),fmtDate:s=>s,pageHead:()=>'',btn:(label,action,id='')=>`<button data-action="${action}" data-id="${id}">${label}</button>`,field:()=>'',area:()=>'',form:(_type,_id,body)=>body,$:()=>null,showDialog:(title,html)=>{ctx.dialog={title,html};},download:(name,data)=>{ctx.output={name,data};}};
  vm.createContext(ctx);vm.runInContext(fs.readFileSync(require.resolve('../src/weekly.fragment.js'),'utf8'),ctx);return ctx;
 }
 test('combined view keeps daily plans, actuals, source totals and pending payments distinct without mutations',()=>{
  const ctx=fixture(),before=JSON.stringify(ctx.state),html=ctx.weekly();
- assert.equal((html.match(/scope="row"/g)||[]).length,7);
+ assert.equal((html.match(/scope="row"/g)||[]).length,8);
  assert.match(html,/data-id="planned-order"/);assert.match(html,/data-id="actual-order"/);
  assert.match(html,/סיכום שבועי מהמקור · ביצוע/);assert.match(html,/השלמת הפירוט היומי · ביצוע/);
  assert.match(html,/תשלומים שממתינים לאימות/);

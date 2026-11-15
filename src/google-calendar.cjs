@@ -15,5 +15,36 @@ function normalize(ev,cal,day){
  if(!visible)return null;
  return {id:'google:'+cal.id+':'+ev.id,google:true,date:day,start,end,allDay,title:ev.summary||'אירוע ללא כותרת',kind:'meeting',calendarName:cal.summary||cal.id,busy:ev.transparency!=='transparent'&&ev.eventType!=='workingLocation',url:/^https:\/\/(calendar\.google\.com|www\.google\.com)\//.test(ev.htmlLink||'')?ev.htmlLink:''};
 }
-const api={bounds,normalize,dayAt,clockAt};if(typeof module==='object'&&module.exports)module.exports=api;else root.NoaGoogleCalendar=api;
+const clientMeetingSource='google-calendar';
+function clientMeetingKey(calendarId,eventId){
+ return 'google-meeting:'+encodeURIComponent(calendarId)+':'+encodeURIComponent(eventId);
+}
+function meetingStatus(event){
+ if(event.status==='cancelled'||event.attendees?.some(attendee=>attendee.self&&attendee.responseStatus==='declined'))return 'cancelled';
+ if(event.transparency==='transparent'||event.eventType&&event.eventType!=='default')return 'excluded';
+ const start=Date.parse(event.start?.dateTime),end=Date.parse(event.end?.dateTime);
+ return Number.isFinite(start)&&Number.isFinite(end)&&start<end?'scheduled':'excluded';
+}
+function matchClientMeeting(event,jobs,contacts,ownerEmail='',calendarId=''){
+ if(event.visibility==='private'||event.visibility==='confidential')return '';
+ const normalizeEmail=value=>String(value||'').trim().toLowerCase();
+ const ignored=new Set([normalizeEmail(ownerEmail),normalizeEmail(calendarId)]);
+ const emails=new Set((event.attendees||[]).filter(attendee=>!attendee.self&&!attendee.resource&&attendee.responseStatus!=='declined').map(attendee=>normalizeEmail(attendee.email)).filter(email=>email&&!ignored.has(email)));
+ const contactIds=new Set(contacts.filter(contact=>emails.has(normalizeEmail(contact.email))).map(contact=>contact.id));
+ const matches=jobs.filter(job=>job.stage!=='complete'&&contactIds.has(job.contactId));
+ return matches.length===1?matches[0].id:'';
+}
+function clientMeetingRecord(event,calendarId,jobId,previous,matchedBy){
+ const status=meetingStatus(event);
+ if(status!=='scheduled'&&(!previous||status==='excluded'))return null;
+ if(status==='cancelled')return {...previous,status,sourceUpdated:event.updated||previous.sourceUpdated||''};
+ const startsAt=event.start.dateTime,endsAt=event.end.dateTime;
+ return {
+  id:clientMeetingKey(calendarId,event.id),source:clientMeetingSource,googleEventId:event.id,calendarId,
+  jobId,matchedBy,status,startsAt,endsAt,date:dayAt(startsAt),start:clockAt(startsAt),end:clockAt(endsAt),
+  kind:'meeting',title:event.summary||'פגישת לקוח',sourceUpdated:event.updated||'',
+  url:/^https:\/\/(calendar\.google\.com|www\.google\.com)\//.test(event.htmlLink||'')?event.htmlLink:''
+ };
+}
+const api={bounds,normalize,dayAt,clockAt,clientMeetingSource,clientMeetingKey,meetingStatus,matchClientMeeting,clientMeetingRecord};if(typeof module==='object'&&module.exports)module.exports=api;else root.NoaGoogleCalendar=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
