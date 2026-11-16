@@ -64,13 +64,28 @@ test('categories are visible first and projects appear for the selected family',
  assert.match(c.taskCategoryNavigation(),/data-id="newsletter" aria-pressed="true"/);
  assert.doesNotMatch(c.taskCategoryNavigation(),/הסכמות בארגונים/);
  c.taskArea='referrals';
- assert.match(c.taskCategoryNavigation(),/data-id="contact-book" aria-pressed="false">הכרטסת/);
- assert.equal(c.taskAreaName({area:'contact-book'}),'שיווק › קשרים והפניות › הכרטסת');
- assert.equal(c.taskMatchesArea({area:'contact-book'},'referrals'),true);
+ const referralsNavigation=c.taskCategoryNavigation();
+ assert.match(referralsNavigation,/data-id="contact-book" aria-pressed="false">הכרטסת/);
+ assert.match(referralsNavigation,/data-id="collaborations" aria-pressed="false">שיתופי פעולה/);
+ assert.doesNotMatch(referralsNavigation,/כל משימות השיווק/);
  c.taskArea='previous-task-areas';
  assert.match(c.taskCategoryNavigation(),/סינון לפי שיוך קודם/);
  assert.equal(c.taskMatchesArea({area:'בית'},c.taskArea),true);
  assert.equal(c.taskMatchesArea({area:'personal'},c.taskArea),false);
+});
+
+test('referrals is independent of marketing and contains the contact book and collaborations',()=>{
+ const c=fixture(),options=c.taskAreaOptions();
+ assert.equal(options.referrals,'קשרים והפניות');
+ assert.equal(options['contact-book'],'קשרים והפניות › הכרטסת');
+ assert.equal(options.collaborations,'קשרים והפניות › שיתופי פעולה');
+ for(const area of ['referrals','contact-book','collaborations']){
+  assert.equal(c.taskAreaName({area}),options[area]);
+  assert.equal(c.taskMatchesArea({area},'referrals'),true);
+  assert.equal(c.taskMatchesArea({area},'marketing'),false);
+  assert.equal(c.calendarKindForTask({area}),'marketing');
+ }
+ assert.equal(c.taskMatchesArea({area:'contact-book'},'collaborations'),false);
 });
 
 test('open tasks are grouped once and previous assignments stay in a separate expandable section',()=>{
