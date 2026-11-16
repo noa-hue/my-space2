@@ -13,6 +13,7 @@ const taskGroups={
  apps:{name:'פיתוח אפליקציות',parent:'development'},
  clients:{name:'לקוחות',kind:'admin'},
  operations:{name:'ניהול שוטף',kind:'admin'},
+ 'paid-marketing':{name:'שיווק ממומן',parent:'operations'},
  personal:{name:'אישי',kind:'personal'}
 };
 const taskCategoryShortcuts=['voice','referrals','development','clients','operations','personal'];
