@@ -68,6 +68,10 @@ test('categories are visible first and projects appear for the selected family',
  assert.match(referralsNavigation,/data-id="contact-book" aria-pressed="false">הכרטסת/);
  assert.match(referralsNavigation,/data-id="collaborations" aria-pressed="false">שיתופי פעולה/);
  assert.doesNotMatch(referralsNavigation,/כל משימות השיווק/);
+ c.taskArea='operations';
+ assert.match(c.taskCategoryNavigation(),/data-id="paid-marketing" aria-pressed="false">שיווק ממומן/);
+ assert.equal(c.taskAreaOptions()['paid-marketing'],'ניהול שוטף › שיווק ממומן');
+ assert.equal(c.taskMatchesArea({area:'paid-marketing'},'operations'),true);
  c.taskArea='previous-task-areas';
  assert.match(c.taskCategoryNavigation(),/סינון לפי שיוך קודם/);
  assert.equal(c.taskMatchesArea({area:'בית'},c.taskArea),true);
