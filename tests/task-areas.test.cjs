@@ -63,6 +63,10 @@ test('categories are visible first and projects appear for the selected family',
  c.taskArea='newsletter';
  assert.match(c.taskCategoryNavigation(),/data-id="newsletter" aria-pressed="true"/);
  assert.doesNotMatch(c.taskCategoryNavigation(),/הסכמות בארגונים/);
+ c.taskArea='referrals';
+ assert.match(c.taskCategoryNavigation(),/data-id="contact-book" aria-pressed="false">הכרטסת/);
+ assert.equal(c.taskAreaName({area:'contact-book'}),'שיווק › קשרים והפניות › הכרטסת');
+ assert.equal(c.taskMatchesArea({area:'contact-book'},'referrals'),true);
  c.taskArea='previous-task-areas';
  assert.match(c.taskCategoryNavigation(),/סינון לפי שיוך קודם/);
  assert.equal(c.taskMatchesArea({area:'בית'},c.taskArea),true);
