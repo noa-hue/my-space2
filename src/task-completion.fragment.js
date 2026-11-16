@@ -15,9 +15,9 @@ function taskWritePlan(original,next,now=new Date().toISOString()){
  }
  return records;
 }
-async function persistTask(item){
+async function persistTask(item,additionalRecords=[]){
  if(busy)throw Error('פעולת שמירה כבר מתבצעת');
- const records=taskWritePlan(state.tasks.find(t=>t.id===item.id)||{},item);
+ const records=[...taskWritePlan(state.tasks.find(t=>t.id===item.id)||{},item),...additionalRecords];
  busy=true;saveLabel='שומרת…';const status=$('#save-state');if(status)status.textContent=saveLabel;
  try{await storeAdapter.writeRecords(records);for(const record of records)state[record.type]=C.upsert(state[record.type],record.item);saveLabel=CFG.mode==='demo'?'נשמר בדפדפן הזה':'נשמר בענן';}
  catch(err){saveLabel='השמירה לא הושלמה';throw err;}finally{busy=false;}

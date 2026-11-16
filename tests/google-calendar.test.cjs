@@ -10,7 +10,7 @@ test('calendar refresh shares one appointment between the weekly row and the cas
  const unmatched={...event,id:'unknown',summary:'Unmatched event',attendees:[]};
  let events=[event,unmatched],writes=0;
  const context={
-  GC:G,C:{...C,localDate:()=> '2026-11-15'},CFG:{ownerUid:'test'},
+  taskMeetingSource:'task-meeting',GC:G,C:{...C,localDate:()=> '2026-11-15'},CFG:{ownerUid:'test'},
   state:{appointments:[],jobs:[{id:'job',contactId:'contact',stage:'progress'}],contacts:[{id:'contact',email:'client@example.com'}]},
   cloud:{auth:{currentUser:{email:'owner@example.com'}}},
   googleCalendar:{token:'test'},googlePages:async()=>events,
@@ -25,7 +25,7 @@ test('calendar refresh shares one appointment between the weekly row and the cas
  await context.refreshClientMeetings();
  const id=context.state.appointments[0].id;
  assert.match(context.clientMeetingWeekRow(['2026-11-17']),/Example case.*09:00/);
- assert.match(context.caseGoogleMeetings('job'),/Example consultation/);
+ assert.match(context.caseClientMeetings('job'),/Example consultation/);
  assert.match(context.clientMeetingReview(['2026-11-17']),/Unmatched event/);
  await context.refreshClientMeetings();
  assert.equal(writes,1);
@@ -41,7 +41,7 @@ test('calendar refresh shares one appointment between the weekly row and the cas
  assert.equal(context.state.appointments.length,1);
  assert.equal(writes,3);
  assert.doesNotMatch(context.clientMeetingWeekRow(['2026-11-24']),/Example case/);
- assert.match(context.caseGoogleMeetings('job'),/בוטלה/);
+ assert.match(context.caseClientMeetings('job'),/בוטלה/);
 });
 test('Jerusalem day bounds follow summer, winter and DST transition lengths',()=>{
  assert.deepEqual(G.bounds('2026-07-01'),{timeMin:'2026-06-30T21:00:00.000Z',timeMax:'2026-07-01T21:00:00.000Z'});
