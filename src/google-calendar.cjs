@@ -40,9 +40,9 @@ function clientMeetingRecord(event,calendarId,jobId,previous,matchedBy){
  if(status==='cancelled')return {...previous,status,sourceUpdated:event.updated||previous.sourceUpdated||''};
  const startsAt=event.start.dateTime,endsAt=event.end.dateTime;
  return {
-  id:clientMeetingKey(calendarId,event.id),source:clientMeetingSource,googleEventId:event.id,calendarId,
+  ...previous,id:previous?.id||clientMeetingKey(calendarId,event.id),source:previous?.source||clientMeetingSource,googleEventId:event.id,calendarId,
   jobId,matchedBy,status,startsAt,endsAt,date:dayAt(startsAt),start:clockAt(startsAt),end:clockAt(endsAt),
-  kind:'meeting',title:event.summary||'פגישת לקוח',sourceUpdated:event.updated||'',
+  kind:'meeting',title:previous?.source==='task-meeting'?previous.title:event.summary||'פגישת לקוח',sourceUpdated:event.updated||'',
   url:/^https:\/\/(calendar\.google\.com|www\.google\.com)\//.test(event.htmlLink||'')?event.htmlLink:''
  };
 }

@@ -1,7 +1,7 @@
 const clientMeetingSetting='noa-client-meetings-'+CFG.ownerUid;
 const meetingFields='id,summary,start,end,status,visibility,transparency,eventType,updated,htmlLink,attendees(email,self,resource,responseStatus)';
 let clientMeetingSync={calendarId:'',candidates:[],loading:false,checkedAt:0,error:''};
-const isClientMeeting=meeting=>meeting.source===GC.clientMeetingSource;
+const isClientMeeting=meeting=>meeting.source===GC.clientMeetingSource||meeting.source===taskMeetingSource;
 const clientMeetingStatus={scheduled:'מתוכננת',cancelled:'בוטלה',excluded:'דרוש שיוך מחדש',unavailable:'לא זמינה ביומן'};
 
 async function saveCloudClientMeetings(api,db,uid,items,manual){
@@ -57,8 +57,8 @@ function clientMeetingItem(event,calendarId,previous){
  const status=GC.meetingStatus(event);
  if(status==='excluded')return previous?{...previous,status}:null;
  if(status==='cancelled')return GC.clientMeetingRecord(event,calendarId,'',previous,'');
- const match=GC.matchClientMeeting(event,state.jobs,state.contacts,cloud?.auth.currentUser?.email,calendarId);
  if(previous?.matchedBy==='manual'&&state.jobs.some(job=>job.id===previous.jobId))return GC.clientMeetingRecord(event,calendarId,previous.jobId,previous,'manual');
+ const match=GC.matchClientMeeting(event,state.jobs,state.contacts,cloud?.auth.currentUser?.email,calendarId);
  if(previous&&match!==previous.jobId)return {...previous,status:'excluded'};
  return match?GC.clientMeetingRecord(event,calendarId,match,previous,'email'):null;
 }
@@ -77,7 +77,7 @@ async function refreshClientMeetings(){
    singleEvents:true,showDeleted:true,maxResults:2500,fields:`nextPageToken,items(${meetingFields})`
   });
   const byId=new Map(events.map(event=>[event.id,event]));
-  const known=state.appointments.filter(meeting=>isClientMeeting(meeting)&&meeting.calendarId===calendarId);
+  const known=state.appointments.filter(meeting=>isClientMeeting(meeting)&&meeting.calendarId===calendarId&&meeting.googleEventId);
   const missing=known.filter(meeting=>meeting.date>=firstDay&&meeting.date<lastDay&&!byId.has(meeting.googleEventId)&&meeting.status!=='cancelled');
   for(const meeting of missing){
    if(sync!==clientMeetingSync||connection!==googleCalendar||!connection.token)return;
@@ -91,8 +91,7 @@ async function refreshClientMeetings(){
   const updates=[], candidates=[];
   for(const event of byId.values()){
    if(!event.id)continue;
-   const id=GC.clientMeetingKey(calendarId,event.id);
-   const previous=state.appointments.find(meeting=>meeting.id===id&&isClientMeeting(meeting));
+   const previous=state.appointments.find(meeting=>isClientMeeting(meeting)&&meeting.calendarId===calendarId&&meeting.googleEventId===event.id);
    const next=event.unavailable?(previous&&{...previous,status:'unavailable'}):clientMeetingItem(event,calendarId,previous);
    if(next&&Object.keys(next).some(key=>next[key]!==previous?.[key]))updates.push({previous,next});
    if((!next||next.status==='excluded')&&GC.meetingStatus(event)==='scheduled')candidates.push(event);
@@ -156,10 +155,10 @@ async function submitClientMeeting(formData){
  const path='calendars/'+encodeURIComponent(sync.calendarId)+'/events/'+encodeURIComponent(event.id);
  const latest=await googleGet(path,{fields:meetingFields});
  if(sync!==clientMeetingSync||!storeAdapter||GC.meetingStatus(latest)!=='scheduled')throw Error('הפגישה השתנתה ביומן. יש לסנכרן שוב.');
- const record=GC.clientMeetingRecord(latest,sync.calendarId,job.id,null,'manual');
+ const previous=state.appointments.find(meeting=>meeting.calendarId===sync.calendarId&&meeting.googleEventId===event.id&&isClientMeeting(meeting));
+ const record=GC.clientMeetingRecord(latest,sync.calendarId,job.id,previous,'manual');
  if(!record)throw Error('הפגישה אינה זמינה לשיוך.');
  if(busy)throw Error('יש שמירה שמתבצעת כרגע.');
- const previous=state.appointments.find(meeting=>meeting.id===record.id);
  await persistClientMeetings([{previous,next:record}],true);
  sync.candidates=sync.candidates.filter(candidate=>candidate.id!==event.id);
  modal.close();render();toast('הפגישה שויכה לתיק ומופיעה בטבלה השבועית.');
@@ -167,7 +166,7 @@ async function submitClientMeeting(formData){
 
 function clientMeetingWeekRow(days){
  const byDay=days.map(day=>state.appointments.filter(meeting=>isClientMeeting(meeting)&&meeting.date===day&&meeting.status==='scheduled').sort((a,b)=>a.start.localeCompare(b.start)));
- return `<tr class="metric-row-client-meetings"><th scope="row">פגישות לקוחות<span class="ledger-status ledger-status-planned">תכנון · יומן Google</span></th>
+ return `<tr class="metric-row-client-meetings"><th scope="row">פגישות לקוחות<span class="ledger-status ledger-status-planned">תכנון</span></th>
  ${byDay.map(meetings=>`<td>${meetings.map(meeting=>`<button class="event-item" data-action="job-detail" data-id="${e(meeting.jobId)}">${e(jobName(meeting.jobId))}<strong><bdi>${e(meeting.start)}</bdi></strong></button>`).join('')||'<span class="muted">—</span>'}</td>`).join('')}
  <td class="total">${byDay.flat().length} פגישות</td></tr>`;
 }
@@ -177,22 +176,24 @@ function clientMeetingReview(days){
  return `<details id="client-meeting-review" class="panel section-space"><summary>אירועים מהיומן שאפשר לשייך · ${candidates.length}</summary>
  ${candidates.map(event=>`<div class="activity spaced"><span>${e(event.summary||'אירוע ללא כותרת')} · ${fmtDate(GC.dayAt(event.start.dateTime))} · ${GC.clockAt(event.start.dateTime)}</span>${btn('שיוך לתיק','client-meeting-link',event.id)}</div>`).join('')}</details>`;
 }
-function caseGoogleMeetings(jobId){
- const meetings=state.appointments.filter(meeting=>isClientMeeting(meeting)&&meeting.jobId===jobId).sort((a,b)=>b.startsAt.localeCompare(a.startsAt));
+function caseClientMeetings(jobId){
+ const meetings=state.appointments.filter(meeting=>isClientMeeting(meeting)&&meeting.jobId===jobId).sort((a,b)=>(b.date+b.start).localeCompare(a.date+a.start));
  if(!meetings.length)return '';
- return `<h3 class="section-title">פגישות מיומן Google</h3>${meetings.map(meeting=>`<div class="activity spaced"><span>${e(meeting.title)} · ${fmtDate(meeting.date)} · <bdi>${e(meeting.start)}</bdi></span>${badge(clientMeetingStatus[meeting.status]||'',meeting.status==='scheduled'?'':'gray')}</div>`).join('')}`;
+ return `<h3 class="section-title">פגישות לקוחות</h3>${meetings.map(meeting=>`<div class="activity spaced"><span>${e(meeting.title)} · ${fmtDate(meeting.date)} · <bdi>${e(meeting.start)}–${e(meeting.end)}</bdi></span>${badge(clientMeetingStatus[meeting.status]||'',meeting.status==='scheduled'?'':'gray')}</div>`).join('')}`;
 }
 
 function savedDayAppointments(google){
- return state.appointments.filter(meeting=>!isClientMeeting(meeting)).filter(meeting=>!google.some(event=>
+ return state.appointments.filter(meeting=>!isClientMeeting(meeting)||!meeting.googleEventId&&meeting.status==='scheduled').filter(meeting=>!google.some(event=>
   meeting.date===event.date&&meeting.start===event.start&&meeting.end===event.end&&
   (meeting.title===event.title||event.url&&meeting.notes?.includes(event.url))
  ));
 }
 function displayedGoogleMeetings(){
- const live=googleDayEvents();
+ const linked=state.appointments.filter(meeting=>isClientMeeting(meeting)&&meeting.googleEventId&&meeting.status==='scheduled');
+ const titles=new Map(linked.filter(meeting=>meeting.source===taskMeetingSource).map(meeting=>['google:'+meeting.calendarId+':'+meeting.googleEventId,meeting.title]));
+ const live=googleDayEvents().map(event=>titles.has(event.id)?{...event,title:titles.get(event.id)}:event);
  const ids=new Set(live.map(event=>event.id));
- const saved=state.appointments.filter(meeting=>isClientMeeting(meeting)&&meeting.status==='scheduled').map(meeting=>GC.normalize({
+ const saved=linked.map(meeting=>GC.normalize({
   id:meeting.googleEventId,summary:meeting.title,htmlLink:meeting.url,
   start:{dateTime:meeting.startsAt},end:{dateTime:meeting.endsAt}
  },{id:meeting.calendarId,summary:'Google Calendar'},calendarDay)).filter(event=>event&&!ids.has(event.id));
