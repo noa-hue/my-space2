@@ -86,3 +86,21 @@ test('open tasks are grouped once and previous assignments stay in a separate ex
  assert.match(c.taskListByCategory(tasks),/^<section class="panel">/);
  assert.doesNotMatch(c.taskListByCategory(tasks),/<details/);
 });
+
+test('task editing and creation render the selected category alongside the notes field',()=>{
+ const c=fixture();
+ const app=readFileSync('src/app.js','utf8');
+ let dialog;
+ Object.assign(c,{page:'tasks',taskArea:'contact-book',today:'2026-11-16',e:String,taskStatuses:{},priorities:{},NoaRecurrence:{rules:{}},
+  taskStatus:()=> 'todo',taskPlannedDate:()=>'',relationOptions:()=>({}),field:()=>'',
+  select:(_label,key,value)=>key==='area'?`<select data-area="${value}"></select>`:'',
+  area:(_label,key,value)=>`<textarea name="${key}">${value}</textarea>`,
+  form:(_type,_id,body)=>body,showDialog:(_title,html)=>{dialog=html;}});
+ vm.runInContext(app.slice(app.indexOf('function editTask('),app.indexOf('function capture(')),c);
+ c.editTask('a');
+ assert.match(dialog,/data-area="עבודה-לקוחות"/);
+ assert.match(dialog,/<textarea name="notes">Retained<\/textarea>/);
+ c.editTask('');
+ assert.match(dialog,/data-area="contact-book"/);
+ assert.match(dialog,/<textarea name="notes"><\/textarea>/);
+});
