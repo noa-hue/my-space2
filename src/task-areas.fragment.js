@@ -6,6 +6,7 @@ const taskGroups={
  podcast:{name:'פודקאסט',parent:'voice'},
  book:{name:'הספר',parent:'voice'},
  referrals:{name:'קשרים והפניות',parent:'marketing'},
+ 'contact-book':{name:'הכרטסת',parent:'referrals'},
  development:{name:'פיתוח ולמידה',kind:'bizdev'},
  agreements:{name:'הסכמות בארגונים',parent:'development'},
  apps:{name:'פיתוח אפליקציות',parent:'development'},
