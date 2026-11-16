@@ -1,5 +1,10 @@
 const fs=require('node:fs'); const path=require('node:path');
 const root=path.join(__dirname,'..'); const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 let html=read('src/index.html');
-for(const [token,file] of [['STYLE','src/style.css'],['CORE','src/core.cjs'],['SCHEDULER','src/scheduler.cjs'],['GOOGLE_CORE','src/google-calendar.cjs'],['CONFIG','config.js'],['RECURRENCE','src/recurrence.cjs'],['MATERIALS','src/materials.cjs'],['COLLECTION_CORE','src/collections.cjs'],['LEADS_CORE','src/leads.cjs'],['APP','src/app.js'],['CALENDAR','src/calendar.fragment.js'],['GOOGLE_CALENDAR','src/google-calendar.fragment.js'],['CLIENT_MEETINGS','src/client-meetings.fragment.js'],['LEADS','src/leads.fragment.js'],['VOICE','src/voice.fragment.js'],['WEEKLY','src/weekly.fragment.js'],['COLLECTIONS','src/collections.fragment.js'],['MEDIA','src/media.fragment.js'],['TASK_COMPLETION','src/task-completion.fragment.js'],['TASK_AREAS','src/task-areas.fragment.js']]) html=html.replace(`/*${token}*/`,()=>read(file));
-fs.mkdirSync(path.join(root,'dist'),{recursive:true});fs.writeFileSync(path.join(root,'dist/index.html'),html);console.log('Built dist/index.html');
+for(const [token,file] of [['STYLE','src/style.css'],['CORE','src/core.cjs'],['SCHEDULER','src/scheduler.cjs'],['GOOGLE_CORE','src/google-calendar.cjs'],['CONFIG','config.js'],['RECURRENCE','src/recurrence.cjs'],['MATERIALS','src/materials.cjs'],['COLLECTION_CORE','src/collections.cjs'],['LEADS_CORE','src/leads.cjs'],['APP','src/app.js'],['CALENDAR','src/calendar.fragment.js'],['GOOGLE_CALENDAR','src/google-calendar.fragment.js'],['CLIENT_MEETINGS','src/client-meetings.fragment.js'],['LEADS','src/leads.fragment.js'],['VOICE','src/voice.fragment.js'],['WEEKLY','src/weekly.fragment.js'],['COLLECTIONS','src/collections.fragment.js'],['MEDIA','src/media.fragment.js'],['TASK_COMPLETION','src/task-completion.fragment.js'],['TASK_AREAS','src/task-areas.fragment.js'],['SHARE_CORE','src/shared-article.cjs'],['SHARED_ARTICLE','src/shared-article.fragment.js']]) html=html.replace(`/*${token}*/`,()=>read(file));
+const dist=path.join(root,'dist');
+fs.mkdirSync(dist,{recursive:true});
+fs.writeFileSync(path.join(dist,'index.html'),html);
+for(const asset of ['manifest.webmanifest','icon-192.png','icon-512.png'])fs.copyFileSync(path.join(root,'src/pwa',asset),path.join(dist,asset));
+fs.writeFileSync(path.join(dist,'service-worker.js'),read('src/shared-article.cjs')+'\n'+read('src/pwa/share-worker.js'));
+console.log('Built dist/index.html and installable app assets');
