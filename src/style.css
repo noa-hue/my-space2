@@ -39,3 +39,11 @@
 .metric-row-client-meetings td{background:#f6faf4}
 .task-area-checklist { max-height: 45vh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; margin: 14px 0; padding: 8px 12px; min-inline-size: 0; }
 .task-area-checklist .checkline { align-items: flex-start; padding-block: 6px; overflow-wrap: anywhere; }
+.task-category-nav { margin-block: 12px 18px; padding: 12px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; }
+.task-category-row, .task-project-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.task-category-nav .chip { min-height: 40px; }
+.task-project-row, .task-category-nav select { margin-top: 10px; }
+.task-project-row { border-top: 1px solid var(--line); padding-top: 10px; }
+.task-category-section + .task-category-section { margin-top: 14px; }
+.task-category-section h2, .task-category-section summary { font-size: 16px; font-weight: 600; }
+.task-category-section summary { cursor: pointer; }

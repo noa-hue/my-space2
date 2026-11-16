@@ -52,3 +52,33 @@ test('the cloud transaction patches only the area and rejects a concurrent reass
  await assert.rejects(c.assignCloudTaskArea(api,{},'user',[task],'clients'),/השתנה/);
  assert.equal(writes.length,1);
 });
+
+test('categories are visible first and projects appear for the selected family',()=>{
+ const c=fixture();
+ Object.assign(c,{e:String,taskArea:'',taskView:'open',query:'',taskPriority:''});
+ const overview=c.taskCategoryNavigation();
+ assert.match(overview,/הקול שלי|לקוחות/);
+ assert.match(overview,/שיוכים קודמים/);
+ assert.doesNotMatch(overview,/ניוזלטר|עבודה-לקוחות/);
+ c.taskArea='newsletter';
+ assert.match(c.taskCategoryNavigation(),/data-id="newsletter" aria-pressed="true"/);
+ assert.doesNotMatch(c.taskCategoryNavigation(),/הסכמות בארגונים/);
+ c.taskArea='previous-task-areas';
+ assert.match(c.taskCategoryNavigation(),/סינון לפי שיוך קודם/);
+ assert.equal(c.taskMatchesArea({area:'בית'},c.taskArea),true);
+ assert.equal(c.taskMatchesArea({area:'personal'},c.taskArea),false);
+});
+
+test('open tasks are grouped once and previous assignments stay in a separate expandable section',()=>{
+ const c=fixture();
+ Object.assign(c,{e:String,taskArea:'',taskView:'open',query:'',taskPriority:'',tasksHtml:tasks=>tasks.map(task=>`<p>${task.id}</p>`).join('')});
+ const tasks=[{id:'writing',area:'newsletter'},{id:'general-marketing',area:'marketing'},{id:'legacy',area:'עבודה-שיווק'},{id:'client',area:'clients'}];
+ const markup=c.taskListByCategory(tasks);
+ assert.equal((markup.match(/<p>writing<\/p>/g)||[]).length,1);
+ assert.match(markup,/<h2>הקול שלי<\/h2><p>writing<\/p>/);
+ assert.match(markup,/<details[^>]*><summary>שיוכים קודמים.*?<p>legacy<\/p><\/details>/);
+ assert.equal(c.taskRowAreaName(tasks[0]),'ניוזלטר');
+ c.taskView='today';
+ assert.match(c.taskListByCategory(tasks),/^<section class="panel">/);
+ assert.doesNotMatch(c.taskListByCategory(tasks),/<details/);
+});
