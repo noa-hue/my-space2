@@ -91,10 +91,10 @@ function editEvent(id,jobId,preset={}){if(!state.jobs.length){toast('צריך ל
 function editTask(id,preset={}){
  const t=state.tasks.find(x=>x.id===id)||preset;
  const parents={'':'משימה עצמאית',...Object.fromEntries(state.tasks.filter(x=>x.id!==id&&!x.parentId).map(x=>[x.id,x.text]))};
- const area=t.id||t.area?taskAreaKey(t):page==='tasks'&&Object.hasOwn(taskGroups,taskArea)?taskArea:'';
+ const selectedArea=t.id||t.area?taskAreaKey(t):page==='tasks'&&Object.hasOwn(taskGroups,taskArea)?taskArea:'';
  showDialog(id?'עריכת משימה':'משימה חדשה',form('tasks',id,
  field('מה צריך לעשות','text',t.text,'text',true)+
- `<div class="grid2">${select('קטגוריה או פרויקט','area',area,{'':'בחרי שיוך',...taskAreaOptions(t.id?[area]:[])})}${select('סטטוס','status',taskStatus(t),taskStatuses)}</div>`+
+ `<div class="grid2">${select('קטגוריה או פרויקט','area',selectedArea,{'':'בחרי שיוך',...taskAreaOptions(t.id?[selectedArea]:[])})}${select('סטטוס','status',taskStatus(t),taskStatuses)}</div>`+
  `<div class="grid2">${select('דחיפות','urgency',t.urgency||'',priorities)}<div class="field"><label for="f-estimatedMinutes">זמן משוער בדקות</label><input id="f-estimatedMinutes" name="estimatedMinutes" type="number" min="1" max="100000" step="1" value="${e(t.estimatedMinutes||'')}"><small>אפשר להשאיר ריק כשהזמן עדיין אינו ידוע.</small></div></div>`+
  `<div class="grid2">${field('דדליין','due',t.due,'date')}${field('מתוכנן ליום','plannedDate',taskPlannedDate(t),'date')}</div>`+
  select('שיוך לתיק, קשר או טקסט','relation',t.relatedId?t.relatedType+':'+t.relatedId:'',relationOptions())+
