@@ -63,6 +63,9 @@ test('categories are visible first and projects appear for the selected family',
  c.taskArea='newsletter';
  assert.match(c.taskCategoryNavigation(),/data-id="newsletter" aria-pressed="true"/);
  assert.doesNotMatch(c.taskCategoryNavigation(),/הסכמות בארגונים/);
+ assert.match(c.taskCategoryNavigation(),/data-id="lectures" aria-pressed="false">הרצאות/);
+ assert.equal(c.taskAreaOptions().lectures,'הקול שלי › הרצאות');
+ assert.equal(c.taskMatchesArea({area:'lectures'},'voice'),true);
  c.taskArea='referrals';
  const referralsNavigation=c.taskCategoryNavigation();
  assert.match(referralsNavigation,/data-id="contact-book" aria-pressed="false">הכרטסת/);
