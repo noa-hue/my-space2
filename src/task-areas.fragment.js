@@ -5,6 +5,7 @@ const taskGroups={
  networks:{name:'רשתות חברתיות',parent:'voice'},
  podcast:{name:'פודקאסט',parent:'voice'},
  book:{name:'הספר',parent:'voice'},
+ lectures:{name:'הרצאות',parent:'voice'},
  referrals:{name:'קשרים והפניות',kind:'marketing'},
  'contact-book':{name:'הכרטסת',parent:'referrals'},
  collaborations:{name:'שיתופי פעולה',parent:'referrals'},
