@@ -42,7 +42,7 @@ function taskAreaOptions(existing=[]){
 }
 
 function taskCategoryNavigation(){
- const olderKeys=[...new Set(state.tasks.filter(task=>taskMatchesArea(task,previousTaskAreas)).map(taskAreaKey))];
+ const olderKeys=[...new Set(state.tasks.filter(task=>taskStatus(task)!=='done'&&taskMatchesArea(task,previousTaskAreas)).map(taskAreaKey))];
  const path=getTaskAreaPath(taskArea);
  const active=taskCategoryShortcuts.find(key=>path.includes(key))||taskArea;
  const showingPrevious=!!taskArea&&!path.length;
