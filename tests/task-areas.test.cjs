@@ -5,7 +5,7 @@ const {readFileSync}=require('node:fs');
 
 function fixture(){
  const tasks=[{id:'a',area:'עבודה-לקוחות',status:'done',relatedId:'j1',notes:'Retained'},{id:'b',area:'בית',repeatRule:'weekly'}];
- const context={state:{tasks},CFG:{mode:'firebase'},busy:false,dayPlan:{},saveLabel:'',modal:{close(){}},render(){},toast(){}};
+ const context={state:{tasks},CFG:{mode:'firebase'},busy:false,dayPlan:{},saveLabel:'',modal:{close(){}},render(){},toast(){},taskStatus:task=>task.status||'todo'};
  vm.createContext(context);
  vm.runInContext(readFileSync('src/task-areas.fragment.js','utf8'),context);
  return context;
@@ -73,9 +73,26 @@ test('categories are visible first and projects appear for the selected family',
  assert.equal(c.taskAreaOptions()['paid-marketing'],'ניהול שוטף › שיווק ממומן');
  assert.equal(c.taskMatchesArea({area:'paid-marketing'},'operations'),true);
  c.taskArea='previous-task-areas';
+ c.state.tasks.push({id:'another-legacy',area:'עבודה-למידה',status:'todo'});
  assert.match(c.taskCategoryNavigation(),/סינון לפי שיוך קודם/);
  assert.equal(c.taskMatchesArea({area:'בית'},c.taskArea),true);
  assert.equal(c.taskMatchesArea({area:'personal'},c.taskArea),false);
+});
+
+test('completed legacy tasks stay accessible without keeping retired categories in navigation',()=>{
+ const c=fixture();
+ Object.assign(c,{e:String,taskArea:'',taskView:'open',query:'',taskPriority:'',tasksHtml:tasks=>tasks.map(task=>task.id).join(',')});
+ c.state.tasks=[{id:'completed',area:'עבודה-שיווק',status:'done'}];
+ const before=JSON.stringify(c.state.tasks);
+ for(const view of ['open','done','all']){
+  c.taskView=view;
+  assert.doesNotMatch(c.taskCategoryNavigation(),/שיוכים קודמים/);
+ }
+ assert.equal(c.taskMatchesArea(c.state.tasks[0],''),true);
+ assert.match(c.taskListByCategory(c.state.tasks),/completed/);
+ assert.equal(JSON.stringify(c.state.tasks),before);
+ c.state.tasks[0].status='todo';
+ assert.match(c.taskCategoryNavigation(),/שיוכים קודמים/);
 });
 
 test('referrals is independent of marketing and contains the contact book and collaborations',()=>{
